@@ -128,10 +128,8 @@ func ShowContainerCheckpoints(tasks []Task) error {
 		"Created",
 		"Engine",
 	}
-	// Set all columns in the table header upfront when displaying more than one checkpoint
-	if len(tasks) > 1 {
-		header = append(header, "IP", "MAC", "CHKPT Size", "Root Fs Diff Size")
-	}
+	// Always include network columns in header
+	header = append(header, "IP", "MAC", "CHKPT Size", "Root Fs Diff Size")
 
 	for _, task := range tasks {
 		info, err := getCheckpointInfo(task)
@@ -154,30 +152,13 @@ func ShowContainerCheckpoints(tasks []Task) error {
 
 		if len(tasks) == 1 {
 			fmt.Printf("\nDisplaying container checkpoint data from %s\n\n", task.CheckpointFilePath)
-
-			if info.containerInfo.IP != "" {
-				header = append(header, "IP")
-				row = append(row, info.containerInfo.IP)
-			}
-			if info.containerInfo.MAC != "" {
-				header = append(header, "MAC")
-				row = append(row, info.containerInfo.MAC)
-			}
-
-			header = append(header, "CHKPT Size")
-			row = append(row, metadata.ByteToString(info.archiveSizes.checkpointSize))
-
-			// Display root fs diff size if available
-			if info.archiveSizes.rootFsDiffTarSize != 0 {
-				header = append(header, "Root Fs Diff Size")
-				row = append(row, metadata.ByteToString(info.archiveSizes.rootFsDiffTarSize))
-			}
-		} else {
-			row = append(row, info.containerInfo.IP)
-			row = append(row, info.containerInfo.MAC)
-			row = append(row, metadata.ByteToString(info.archiveSizes.checkpointSize))
-			row = append(row, metadata.ByteToString(info.archiveSizes.rootFsDiffTarSize))
 		}
+
+		// Always include network and size information
+		row = append(row, info.containerInfo.IP)
+		row = append(row, info.containerInfo.MAC)
+		row = append(row, metadata.ByteToString(info.archiveSizes.checkpointSize))
+		row = append(row, metadata.ByteToString(info.archiveSizes.rootFsDiffTarSize))
 
 		table.Append(row)
 	}
