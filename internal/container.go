@@ -46,12 +46,21 @@ type checkpointInfo struct {
 	archiveSizes  *archiveSizes
 }
 
-func getPodmanInfo(containerConfig *metadata.ContainerConfig, _ *spec.Spec) *containerInfo {
-	return &containerInfo{
+func getPodmanInfo(containerConfig *metadata.ContainerConfig, specDump *spec.Spec) *containerInfo {
+	info := &containerInfo{
 		Name:    containerConfig.Name,
 		Created: containerConfig.CreatedTime.Format(time.RFC3339),
 		Engine:  "Podman",
 	}
+
+	// Try to get network information from network.status file
+	ip, mac, err := getPodmanNetworkInfo(filepath.Dir(containerConfig.ConfigPath))
+	if err == nil {
+		info.IP = ip
+		info.MAC = mac
+	}
+
+	return info
 }
 
 func getContainerdInfo(containerConfig *metadata.ContainerConfig, specDump *spec.Spec) *containerInfo {
