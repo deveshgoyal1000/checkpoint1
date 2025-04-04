@@ -15,11 +15,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/checkpoint-restore/checkpointctl/lib"
+	lib "github.com/checkpoint-restore/checkpointctl/lib"
 	"github.com/checkpoint-restore/go-criu/v7/crit"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/olekukonko/tablewriter"
-	"github.com/opencontainers/runtime-spec/specs-go"
+	specs "github.com/opencontainers/runtime-spec/specs-go"
 )
 
 var pageSize = os.Getpagesize()
