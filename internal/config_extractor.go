@@ -39,7 +39,11 @@ func ExtractConfigDump(checkpointPath string) (*ChkptConfig, error) {
 		return nil, err
 	}
 
-	info.containerInfo, err = getContainerInfo(info.specDump, info.configDump, tempDir)
+	task := Task{
+		OutputDir:          tempDir,
+		CheckpointFilePath: checkpointPath,
+	}
+	info.containerInfo, err = getContainerInfo(info.specDump, info.configDump, task)
 	if err != nil {
 		return nil, err
 	}
