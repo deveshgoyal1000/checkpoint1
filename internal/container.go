@@ -20,6 +20,12 @@ import (
 	"github.com/containers/storage/pkg/archive"
 	"github.com/olekukonko/tablewriter"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
+
+	metadata "github.com/checkpoint-restore/checkpointctl/lib"
+	"github.com/checkpoint-restore/go-criu/v7/crit"
+	"github.com/containers/storage/pkg/archive"
+	"github.com/olekukonko/tablewriter"
+	spec "github.com/opencontainers/runtime-spec/specs-go"
 )
 
 var pageSize = os.Getpagesize()
@@ -46,7 +52,7 @@ type checkpointInfo struct {
 	archiveSizes  *archiveSizes
 }
 
-func getPodmanInfo(containerConfig *metadata.ContainerConfig, specDump *spec.Spec, outputDir string) *containerInfo {
+func getPodmanInfo(containerConfig *metadata.ContainerConfig, specDump *spec.Spec, task Task) *containerInfo {
 	info := &containerInfo{
 		Name:    containerConfig.Name,
 		Created: containerConfig.CreatedTime.Format(time.RFC3339),
@@ -55,11 +61,21 @@ func getPodmanInfo(containerConfig *metadata.ContainerConfig, specDump *spec.Spe
 
 	// Try to get network information from network.status file
 	if specDump.Annotations["io.container.manager"] == "libpod" {
-		networkStatusFile := filepath.Join(outputDir, metadata.NetworkStatusFile)
-		ip, mac, err := getPodmanNetworkInfo(networkStatusFile)
+		// Create temp dir for network status file
+		tmpDir, err := os.MkdirTemp("", "network-status")
 		if err == nil {
-			info.IP = ip
-			info.MAC = mac
+			defer os.RemoveAll(tmpDir)
+			
+			// Extract network.status file
+			err = UntarFiles(task.CheckpointFilePath, tmpDir, []string{metadata.NetworkStatusFile})
+			if err == nil {
+				networkStatusFile := filepath.Join(tmpDir, metadata.NetworkStatusFile)
+				ip, mac, err := getPodmanNetworkInfo(networkStatusFile)
+				if err == nil {
+					info.IP = ip
+					info.MAC = mac
+				}
+			}
 		}
 	}
 
@@ -105,7 +121,7 @@ func getCheckpointInfo(task Task) (*checkpointInfo, error) {
 		return nil, err
 	}
 
-	info.containerInfo, err = getContainerInfo(info.specDump, info.configDump, task.OutputDir)
+	info.containerInfo, err = getContainerInfo(info.specDump, info.configDump, task)
 	if err != nil {
 		return nil, err
 	}
@@ -171,11 +187,11 @@ func ShowContainerCheckpoints(tasks []Task) error {
 	return nil
 }
 
-func getContainerInfo(specDump *spec.Spec, containerConfig *metadata.ContainerConfig, outputDir string) (*containerInfo, error) {
+func getContainerInfo(specDump *spec.Spec, containerConfig *metadata.ContainerConfig, task Task) (*containerInfo, error) {
 	var ci *containerInfo
 	switch m := specDump.Annotations["io.container.manager"]; m {
 	case "libpod":
-		ci = getPodmanInfo(containerConfig, specDump, outputDir)
+		ci = getPodmanInfo(containerConfig, specDump, task)
 	case "cri-o":
 		var err error
 		ci, err = getCRIOInfo(containerConfig, specDump)
