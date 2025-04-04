@@ -46,7 +46,7 @@ type checkpointInfo struct {
 	archiveSizes  *archiveSizes
 }
 
-func getPodmanInfo(containerConfig *metadata.ContainerConfig, specDump *spec.Spec) *containerInfo {
+func getPodmanInfo(containerConfig *metadata.ContainerConfig, specDump *spec.Spec, outputDir string) *containerInfo {
 	info := &containerInfo{
 		Name:    containerConfig.Name,
 		Created: containerConfig.CreatedTime.Format(time.RFC3339),
@@ -55,7 +55,8 @@ func getPodmanInfo(containerConfig *metadata.ContainerConfig, specDump *spec.Spe
 
 	// Try to get network information from network.status file
 	if specDump.Annotations["io.container.manager"] == "libpod" {
-		ip, mac, err := getPodmanNetworkInfo(filepath.Join(task.OutputDir, metadata.NetworkStatusFile))
+		networkStatusFile := filepath.Join(outputDir, metadata.NetworkStatusFile)
+		ip, mac, err := getPodmanNetworkInfo(networkStatusFile)
 		if err == nil {
 			info.IP = ip
 			info.MAC = mac
@@ -104,7 +105,7 @@ func getCheckpointInfo(task Task) (*checkpointInfo, error) {
 		return nil, err
 	}
 
-	info.containerInfo, err = getContainerInfo(info.specDump, info.configDump)
+	info.containerInfo, err = getContainerInfo(info.specDump, info.configDump, task.OutputDir)
 	if err != nil {
 		return nil, err
 	}
@@ -189,11 +190,11 @@ func ShowContainerCheckpoints(tasks []Task) error {
 	return nil
 }
 
-func getContainerInfo(specDump *spec.Spec, containerConfig *metadata.ContainerConfig) (*containerInfo, error) {
+func getContainerInfo(specDump *spec.Spec, containerConfig *metadata.ContainerConfig, outputDir string) (*containerInfo, error) {
 	var ci *containerInfo
 	switch m := specDump.Annotations["io.container.manager"]; m {
 	case "libpod":
-		ci = getPodmanInfo(containerConfig, specDump)
+		ci = getPodmanInfo(containerConfig, specDump, outputDir)
 	case "cri-o":
 		var err error
 		ci, err = getCRIOInfo(containerConfig, specDump)

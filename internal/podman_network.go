@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
 )
 
 // PodmanNetworkStatus represents the network status structure for Podman
@@ -22,7 +21,7 @@ type PodmanNetworkStatus struct {
 
 // getPodmanNetworkInfo reads and parses the network.status file from a Podman checkpoint
 func getPodmanNetworkInfo(networkStatusFile string) (string, string, error) {
-	data, err := os.ReadFile(networkFile)
+	data, err := os.ReadFile(networkStatusFile)
 	if err != nil {
 		// Return empty strings if file doesn't exist or can't be read
 		// This maintains compatibility with containers that don't have network info
