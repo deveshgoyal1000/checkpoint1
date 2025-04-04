@@ -20,12 +20,6 @@ import (
 	"github.com/containers/storage/pkg/archive"
 	"github.com/olekukonko/tablewriter"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
-
-	metadata "github.com/checkpoint-restore/checkpointctl/lib"
-	"github.com/checkpoint-restore/go-criu/v7/crit"
-	"github.com/containers/storage/pkg/archive"
-	"github.com/olekukonko/tablewriter"
-	spec "github.com/opencontainers/runtime-spec/specs-go"
 )
 
 var pageSize = os.Getpagesize()
@@ -67,13 +61,19 @@ func getPodmanInfo(containerConfig *metadata.ContainerConfig, specDump *spec.Spe
 			defer os.RemoveAll(tmpDir)
 			
 			// Extract network.status file
+			fmt.Printf("Extracting network.status from: %s\n", task.CheckpointFilePath)
 			err = UntarFiles(task.CheckpointFilePath, tmpDir, []string{metadata.NetworkStatusFile})
-			if err == nil {
+			if err != nil {
+				fmt.Printf("Error extracting network.status: %v\n", err)
+			} else {
 				networkStatusFile := filepath.Join(tmpDir, metadata.NetworkStatusFile)
 				ip, mac, err := getPodmanNetworkInfo(networkStatusFile)
-				if err == nil {
+				if err != nil {
+					fmt.Printf("Error reading network info: %v\n", err)
+				} else {
 					info.IP = ip
 					info.MAC = mac
+					fmt.Printf("Found network info - IP: %s, MAC: %s\n", ip, mac)
 				}
 			}
 		}
