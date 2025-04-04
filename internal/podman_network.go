@@ -21,8 +21,7 @@ type PodmanNetworkStatus struct {
 }
 
 // getPodmanNetworkInfo reads and parses the network.status file from a Podman checkpoint
-func getPodmanNetworkInfo(checkpointDir string) (string, string, error) {
-	networkFile := filepath.Join(checkpointDir, "network.status")
+func getPodmanNetworkInfo(networkStatusFile string) (string, string, error) {
 	data, err := os.ReadFile(networkFile)
 	if err != nil {
 		// Return empty strings if file doesn't exist or can't be read

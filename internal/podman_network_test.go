@@ -4,16 +4,11 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	metadata "github.com/checkpoint-restore/checkpointctl/lib"
 )
 
 func TestGetPodmanNetworkInfo(t *testing.T) {
-	// Create a temporary directory for test
-	tmpDir, err := os.MkdirTemp("", "podman-network-test")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tmpDir)
-
 	// Test case 1: Valid network status file
 	networkStatus := `{
 		"podman": {
@@ -31,12 +26,12 @@ func TestGetPodmanNetworkInfo(t *testing.T) {
 		}
 	}`
 
-	err = os.WriteFile(filepath.Join(tmpDir, "network.status"), []byte(networkStatus), 0644)
-	if err != nil {
+	networkStatusFile := filepath.Join(t.TempDir(), metadata.NetworkStatusFile)
+	if err := os.WriteFile(networkStatusFile, []byte(networkStatus), 0644); err != nil {
 		t.Fatalf("Failed to write test file: %v", err)
 	}
 
-	ip, mac, err := getPodmanNetworkInfo(tmpDir)
+	ip, mac, err := getPodmanNetworkInfo(networkStatusFile)
 	if err != nil {
 		t.Errorf("getPodmanNetworkInfo failed: %v", err)
 	}
@@ -52,13 +47,8 @@ func TestGetPodmanNetworkInfo(t *testing.T) {
 	}
 
 	// Test case 2: Missing network status file
-	emptyDir, err := os.MkdirTemp("", "empty-test")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(emptyDir)
-
-	ip, mac, err = getPodmanNetworkInfo(emptyDir)
+	nonExistentFile := filepath.Join(t.TempDir(), metadata.NetworkStatusFile)
+	ip, mac, err = getPodmanNetworkInfo(nonExistentFile)
 	if err != nil {
 		t.Errorf("getPodmanNetworkInfo with missing file should not return error, got: %v", err)
 	}
@@ -67,12 +57,12 @@ func TestGetPodmanNetworkInfo(t *testing.T) {
 	}
 
 	// Test case 3: Invalid JSON
-	err = os.WriteFile(filepath.Join(tmpDir, "network.status"), []byte("invalid json"), 0644)
-	if err != nil {
+	invalidJSONFile := filepath.Join(t.TempDir(), metadata.NetworkStatusFile)
+	if err := os.WriteFile(invalidJSONFile, []byte("invalid json"), 0644); err != nil {
 		t.Fatalf("Failed to write test file: %v", err)
 	}
 
-	ip, mac, err = getPodmanNetworkInfo(tmpDir)
+	ip, mac, err = getPodmanNetworkInfo(invalidJSONFile)
 	if err == nil {
 		t.Error("getPodmanNetworkInfo should fail with invalid JSON")
 	}

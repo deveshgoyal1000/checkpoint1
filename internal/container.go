@@ -54,10 +54,12 @@ func getPodmanInfo(containerConfig *metadata.ContainerConfig, specDump *spec.Spe
 	}
 
 	// Try to get network information from network.status file
-	ip, mac, err := getPodmanNetworkInfo(filepath.Dir(containerConfig.ConfigPath))
-	if err == nil {
-		info.IP = ip
-		info.MAC = mac
+	if specDump.Annotations["io.container.manager"] == "libpod" {
+		ip, mac, err := getPodmanNetworkInfo(filepath.Join(task.OutputDir, metadata.NetworkStatusFile))
+		if err == nil {
+			info.IP = ip
+			info.MAC = mac
+		}
 	}
 
 	return info
