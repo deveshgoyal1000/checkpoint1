@@ -111,11 +111,35 @@ func buildTree(ci *containerInfo, containerConfig *metadata.ContainerConfig, arc
 	}
 	tree.AddBranch(fmt.Sprintf("Engine: %s", ci.Engine))
 
-	if ci.IP != "" {
-		tree.AddBranch(fmt.Sprintf("IP: %s", ci.IP))
-	}
-	if ci.MAC != "" {
-		tree.AddBranch(fmt.Sprintf("MAC: %s", ci.MAC))
+	// Add network information
+	if len(ci.Networks) > 0 {
+		networkTree := tree.AddBranch("Network Information")
+		for i, network := range ci.Networks {
+			if i == 0 {
+				// For backward compatibility, show first interface without index
+				if network.IP != "" {
+					networkTree.AddBranch(fmt.Sprintf("IP: %s", network.IP))
+				}
+				if network.MAC != "" {
+					networkTree.AddBranch(fmt.Sprintf("MAC: %s", network.MAC))
+				}
+				if network.Gateway != "" {
+					networkTree.AddBranch(fmt.Sprintf("Gateway: %s", network.Gateway))
+				}
+			} else {
+				// Show additional interfaces with index
+				interfaceTree := networkTree.AddBranch(fmt.Sprintf("Interface %d", i+1))
+				if network.IP != "" {
+					interfaceTree.AddBranch(fmt.Sprintf("IP: %s", network.IP))
+				}
+				if network.MAC != "" {
+					interfaceTree.AddBranch(fmt.Sprintf("MAC: %s", network.MAC))
+				}
+				if network.Gateway != "" {
+					interfaceTree.AddBranch(fmt.Sprintf("Gateway: %s", network.Gateway))
+				}
+			}
+		}
 	}
 
 	checkpointSize := tree.AddBranch(fmt.Sprintf("Checkpoint size: %s", metadata.ByteToString(archiveSizes.checkpointSize)))

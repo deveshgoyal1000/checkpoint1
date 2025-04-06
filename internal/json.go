@@ -75,22 +75,27 @@ var socketDataFuncs = map[string]func(*crit.Socket) SkData{
 	"NETLINKSK": getNetlinkSkData,
 }
 
+type NetworkDisplay struct {
+	IPs      []string `json:"ips,omitempty"`
+	MACs     []string `json:"macs,omitempty"`
+	Gateways []string `json:"gateways,omitempty"`
+}
+
 type DisplayNode struct {
 	ContainerName      string         `json:"container_name"`
-	Image              string         `json:"image"`
-	ID                 string         `json:"id"`
-	Runtime            string         `json:"runtime"`
-	Created            string         `json:"created"`
-	Checkpointed       string         `json:"checkpointed,omitempty"`
-	Engine             string         `json:"engine"`
-	IP                 string         `json:"ip,omitempty"`
-	MAC                string         `json:"mac,omitempty"`
-	CheckpointSize     CheckpointSize `json:"checkpoint_size"`
-	CriuDumpStatistics *StatsNode     `json:"statistics,omitempty"`
-	ProcessTree        *PsNode        `json:"process_tree,omitempty"`
-	FileDescriptors    []FdNode       `json:"file_descriptors,omitempty"`
-	Sockets            []SkNode       `json:"sockets,omitempty"`
-	Mounts             []MountNode    `json:"mounts,omitempty"`
+	Image             string         `json:"image"`
+	ID                string         `json:"id"`
+	Runtime           string         `json:"runtime"`
+	Created           string         `json:"created"`
+	Checkpointed      string         `json:"checkpointed,omitempty"`
+	Engine            string         `json:"engine"`
+	Networks          NetworkDisplay `json:"networks,omitempty"`
+	CheckpointSize    CheckpointSize `json:"checkpoint_size"`
+	CriuDumpStatistics *StatsNode    `json:"statistics,omitempty"`
+	ProcessTree       *PsNode        `json:"process_tree,omitempty"`
+	FileDescriptors   []FdNode       `json:"file_descriptors,omitempty"`
+	Sockets           []SkNode       `json:"sockets,omitempty"`
+	Mounts            []MountNode    `json:"mounts,omitempty"`
 }
 
 type MountNode struct {
@@ -110,22 +115,36 @@ func RenderJSONView(tasks []Task) error {
 
 		node := DisplayNode{
 			ContainerName: info.containerInfo.Name,
-			Image:         info.configDump.RootfsImageName,
-			ID:            info.configDump.ID,
-			Runtime:       info.configDump.OCIRuntime,
-			Created:       info.containerInfo.Created,
-			Engine:        info.containerInfo.Engine,
+			Image:        info.configDump.RootfsImageName,
+			ID:           info.configDump.ID,
+			Runtime:      info.configDump.OCIRuntime,
+			Created:      info.containerInfo.Created,
+			Engine:       info.containerInfo.Engine,
 		}
 
 		if !info.configDump.CheckpointedAt.IsZero() {
 			node.Checkpointed = info.configDump.CheckpointedAt.Format(time.RFC3339)
 		}
 
-		if info.containerInfo.IP != "" {
-			node.IP = info.containerInfo.IP
+		// Handle network information
+		var ips, macs, gateways []string
+		for _, network := range info.containerInfo.Networks {
+			if network.IP != "" {
+				ips = append(ips, network.IP)
+			}
+			if network.MAC != "" {
+				macs = append(macs, network.MAC)
+			}
+			if network.Gateway != "" {
+				gateways = append(gateways, network.Gateway)
+			}
 		}
-		if info.containerInfo.MAC != "" {
-			node.MAC = info.containerInfo.MAC
+		if len(ips) > 0 || len(macs) > 0 || len(gateways) > 0 {
+			node.Networks = NetworkDisplay{
+				IPs:      ips,
+				MACs:     macs,
+				Gateways: gateways,
+			}
 		}
 
 		checkpointSizeNode := CheckpointSize{
